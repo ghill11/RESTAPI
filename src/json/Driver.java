@@ -18,11 +18,12 @@ public class Driver {
 		Connection conn = null;
 		try {
 			conn = DriverManager.getConnection(dbURL);
-			Statement stmt = conn.createStatement();
+			Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 			ResultSet rs = stmt.executeQuery("SELECT * FROM Test.dbo.CAT");
-//			while (rs.next()) {
-//				System.out.println(rs.getString(1) + " " + rs.getString(2));
-//			} // end while
+			while (rs.next()) {
+				System.out.println(rs.getString(1) + " " + rs.getString(2) + " " + rs.getString(3));
+			} // end while
+			rs.beforeFirst();
 			Gson gson = new Gson();
 			JsonArray jsonArray = convertToJSON(rs);
 			System.out.println(gson.toJson(jsonArray));
@@ -58,14 +59,12 @@ public class Driver {
         } else if (value instanceof String) {
             obj.addProperty(propertyName, (String)value);
         } else if (value instanceof java.sql.Date) {
-            // Not clear how you want dates to be represented in JSON.
-            // Perhaps use SimpleDateFormat to convert them to a string?
-            // I'll leave it up to you to finish this off.
+            obj.addProperty(propertyName, ((java.sql.Date)value).toString());
+        } else if (value instanceof java.sql.Time) {
+            obj.addProperty(propertyName, ((java.sql.Time)value).toString());
+        } else if (value instanceof java.sql.Timestamp) {
+            obj.addProperty(propertyName, ((java.sql.Timestamp)value).toString());
         } else {
-           // Some other type of value.  You can of course add handling
-           // for extra types of values that you get, but it's worth
-           // keeping this line at the bottom to ensure that if you do
-           // get a value you are not expecting, you find out about it.
            throw new Exception("Unrecognised type of value: " + value.getClass().getName());
         }
     }
