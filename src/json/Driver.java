@@ -6,36 +6,62 @@ import java.sql.ResultSet;
 
 import java.sql.Statement;
 
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.server.Server;
+
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
+import servlets.JSONServlet;
+
 public class Driver {
 
 	public static void main(String[] args) {
+		
+		Server server = new Server(8080);
+
+        ServletContextHandler context = new ServletContextHandler();
+        context.setContextPath("/");
+        context.addServlet(JSONServlet.class.getName(), "/hello");
+        server.setHandler(context);
+        try {
+			server.start();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
 		String dbURL = "jdbc:sqlserver://161.31.4.49;user=cisa;password=Yw7LSLcajASptSQ7;encrypt=false;";
 		Connection conn = null;
 		try {
 			conn = DriverManager.getConnection(dbURL);
+			if (conn != null) {
+			    System.out.println((conn != null? "Connected":"Not Connected"));
+			} // end if
 			Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 			ResultSet rs = stmt.executeQuery("SELECT * FROM Test.dbo.CAT");
 			while (rs.next()) {
-				System.out.println(rs.getString(1) + " " + rs.getString(2) + " " + rs.getString(3));
+				int total_columns = rs.getMetaData().getColumnCount();
+				for (int i=0; i < total_columns; i++) {
+                    System.out.print(rs.getMetaData().getColumnLabel(i + 1) + ": " + rs.getObject(i + 1) + " ");
+                } // end for
+				System.out.println();
 			} // end while
 			rs.beforeFirst();
-			Gson gson = new Gson();
+			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 			JsonArray jsonArray = convertToJSON(rs);
-			System.out.println(gson.toJson(jsonArray));
+			String prettyJSON = gson.toJson(jsonArray);
+			System.out.println(prettyJSON);
 			rs.close();
 			stmt.close();
 			conn.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		} // end catch
-		if (conn != null) {
-		    System.out.println("Connected");
-		} // end if
+
 	} // end main
 	
     public static JsonArray convertToJSON(ResultSet resultSet) throws Exception {
